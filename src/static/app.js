@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Create participants list HTML
         const participantsList = details.participants.length > 0
-          ? `<ul>${details.participants.map(email => `<li>${email}</li>`).join("")}</ul>`
+          ? `<ul class="participants-list">${details.participants.map(email => `<li class="participant-item"><span>${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}" type="button">✕</button></li>`).join("")}</ul>`
           : "<p><em>No participants yet</em></p>";
 
         activityCard.innerHTML = `
@@ -37,6 +37,15 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add event listeners to delete buttons
+        const deleteButtons = activityCard.querySelectorAll(".delete-btn");
+        deleteButtons.forEach(button => {
+          button.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await deleteParticipant(name, button.dataset.email);
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -89,6 +98,41 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Function to delete a participant
+  async function deleteParticipant(activityName, email) {
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        messageDiv.textContent = result.message || "Participant removed successfully";
+        messageDiv.className = "success";
+        fetchActivities(); // Refresh the activities list
+      } else {
+        messageDiv.textContent = result.detail || "Failed to remove participant";
+        messageDiv.className = "error";
+      }
+
+      messageDiv.classList.remove("hidden");
+
+      // Hide message after 5 seconds
+      setTimeout(() => {
+        messageDiv.classList.add("hidden");
+      }, 5000);
+    } catch (error) {
+      messageDiv.textContent = "Failed to remove participant. Please try again.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error removing participant:", error);
+    }
+  }
 
   // Initialize app
   fetchActivities();
